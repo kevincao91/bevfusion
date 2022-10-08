@@ -296,6 +296,13 @@ class DataBaseSampler:
         sampled = copy.deepcopy(sampled)
         num_gt = gt_bboxes.shape[0]
         num_sampled = len(sampled)
+
+        # kevin  solution 4 raise ValueError('need at least one array to stack')
+        # ValueError: need at least one array to stack
+        if num_sampled <= 0:
+            return []
+
+
         gt_bboxes_bv = box_np_ops.center_to_corner_box2d(
             gt_bboxes[:, 0:2], gt_bboxes[:, 3:5], gt_bboxes[:, 6]
         )

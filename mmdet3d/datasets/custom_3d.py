@@ -107,6 +107,9 @@ class Custom3DDataset(Dataset):
                 - file_name (str): Filename of point clouds.
                 - ann_info (dict): Annotation info.
         """
+        # kevin  被重构了？
+        print('function custom_3d get_data_info in =================>', index)
+
         info = self.data_infos[index]
         sample_idx = info["point_cloud"]["lidar_idx"]
         lidar_path = osp.join(self.dataset_root, info["pts_path"])
@@ -157,6 +160,9 @@ class Custom3DDataset(Dataset):
         Returns:
             dict: Training data dict of the corresponding index.
         """
+        # kevin
+        print('function custom_3d prepare_train_data in =================>', index)
+
         input_dict = self.get_data_info(index)
         if input_dict is None:
             return None
@@ -287,6 +293,9 @@ class Custom3DDataset(Dataset):
         Returns:
             dict: Data dictionary of the corresponding index.
         """
+        # kevin
+        print('function custom_3d __getitem__ in =================>', idx)
+
         if self.test_mode:
             return self.prepare_test_data(idx)
         while True:
@@ -294,6 +303,9 @@ class Custom3DDataset(Dataset):
             if data is None:
                 idx = self._rand_another(idx)
                 continue
+            # kevin
+            print('function __getitem__ out =================>', idx)
+            
             return data
 
     def _set_group_flag(self):

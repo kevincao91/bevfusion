@@ -49,13 +49,27 @@ class CBGSDataset:
         }
 
         sample_indices = []
-
         frac = 1.0 / len(self.CLASSES)
-        ratios = [frac / v for v in class_distribution.values()]
+        # kevin
+        # ratios = [frac / v for v in class_distribution.values()]
+        ratios = []
+        for v in class_distribution.values():
+            print(v)
+            if v == 0.0:
+                tt = 1e-3
+            else:
+                tt = frac / v
+            ratios.append(tt)
+        # ====================
+
         for cls_inds, ratio in zip(list(class_sample_idxs.values()), ratios):
             sample_indices += np.random.choice(
                 cls_inds, int(len(cls_inds) * ratio)
             ).tolist()
+
+        # kevin
+        print('len(sample_indices)', len(sample_indices), sample_indices)
+
         return sample_indices
 
     def __getitem__(self, idx):
