@@ -299,6 +299,7 @@ class DataBaseSampler:
 
         # kevin  solution 4 raise ValueError('need at least one array to stack')
         # ValueError: need at least one array to stack
+        print('function in sample_class_v2')
         if num_sampled <= 0:
             return []
 

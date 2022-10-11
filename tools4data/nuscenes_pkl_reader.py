@@ -4,8 +4,8 @@ import os
 
 root_dir = 'data/nuscenes'
 # info_path = 'data/nuscenes/nuscenes_infos_val.pkl'
-info_path = os.path.join(root_dir, 'nuscenes_dbinfos_train.pkl')
-out_path = os.path.join(root_dir, 'nuscenes_dbinfos_train.json')
+info_path = os.path.join(root_dir, 'nuscenes_infos_train.pkl')
+out_path = os.path.join(root_dir, 'nuscenes_infos_train.json')
 
 data = mmcv.load(info_path)
 
