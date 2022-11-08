@@ -75,9 +75,11 @@ def create_nuscenes_infos(
 
     # filter existing scenes.
     available_scenes = get_available_scenes(nusc)
+    
     # kevin for sample
-    available_scenes = available_scenes[:2]
+    # available_scenes = available_scenes[:2]
     # ===
+
     available_scene_names = [s["name"] for s in available_scenes]
     train_scenes = list(filter(lambda x: x in available_scene_names, train_scenes))
     val_scenes = list(filter(lambda x: x in available_scene_names, val_scenes))
@@ -182,21 +184,22 @@ def _fill_trainval_infos(nusc, train_scenes, val_scenes, test=False, max_sweeps=
     val_nusc_infos = []
 
     # kevin
-    num_use = 0
+    # num_use = 0
+    # ==
     for sample in mmcv.track_iter_progress(nusc.sample):
         
-        # kevin
-        if sample["scene_token"] in train_scenes:
-            if num_use >= 800:
-                print('ok')
-                continue
-            else:
-                pass
-        elif sample["scene_token"] in val_scenes:
-            pass
-        else:
-            continue
-        #
+        # kevin for sample
+        # if sample["scene_token"] in train_scenes:
+        #     if num_use >= 800:
+        #         print('\nok')
+        #         continue
+        #     else:
+        #         pass
+        # elif sample["scene_token"] in val_scenes:
+        #     pass
+        # else:
+        #     continue
+        # =====
         
         lidar_token = sample["data"]["LIDAR_TOP"]
         sd_rec = nusc.get("sample_data", sample["data"]["LIDAR_TOP"])
@@ -303,13 +306,48 @@ def _fill_trainval_infos(nusc, train_scenes, val_scenes, test=False, max_sweeps=
             info["num_radar_pts"] = np.array([a["num_radar_pts"] for a in annotations])
             info["valid_flag"] = valid_flag
 
+            # 挑选部分类别mask
+            CC = ['car', 'truck', 'pedestrian']
+            mask = [True if name in CC else False for name in names ]
+            info["gt_boxes"] = info["gt_boxes"][mask]
+            info["gt_names"] = info["gt_names"][mask]
+            info["gt_velocity"] = info["gt_velocity"][mask]
+            info["num_lidar_pts"] = info["num_lidar_pts"][mask]
+            info["num_radar_pts"] = info["num_radar_pts"][mask]
+            info["valid_flag"] = info["valid_flag"][mask]
+            # print('gt_names ', len(info["gt_names"]), info["gt_names"])
+            
+            # kevin 提取原始数据
+            # print('src ann data')
+            # save_gt_boxes = np.concatenate([locs, dims, rots], axis=1)
+            # print(save_gt_boxes.shape, save_gt_boxes.dtype)
+            # save_gt_boxes = save_gt_boxes[mask]
+            # print(save_gt_boxes.shape, save_gt_boxes.dtype)
+            # lidar_name = os.path.split(lidar_path)[-1][:-8]
+            # ann_out = 'data/nuscenes_sampled/data4test/0.{}.ann.bin'.format(lidar_name)
+            # print(ann_out)
+            # save_gt_boxes.tofile(ann_out)
+            # =================
+
+            # kevin 提取转换后的存储的数据
+            # print('saved pkl data')
+            # save_gt_boxes = info["gt_boxes"]
+            # print(save_gt_boxes.shape, save_gt_boxes.dtype)
+            # lidar_name = os.path.split(lidar_path)[-1][:-8]
+            # pkl_out = 'data/nuscenes_sampled/data4test/1.{}.pkl.bin'.format(lidar_name)
+            # print(pkl_out)
+            # save_gt_boxes.tofile(pkl_out)
+            # exit()
+            # =================
+
         
         if sample["scene_token"] in train_scenes:
             train_nusc_infos.append(info)
             # kevin
-            print('len(valid_flag)', len(valid_flag))
-            num_use += len(valid_flag)
-            print('num_use', num_use)
+            # print('\n len(valid_flag )', len(info["valid_flag"]))
+            # num_use += len(info["valid_flag"])
+            # print('num_use', num_use)
+            # =====
         else:
             val_nusc_infos.append(info)
 

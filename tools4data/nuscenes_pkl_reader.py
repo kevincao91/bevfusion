@@ -2,7 +2,7 @@ import numpy as np
 import mmcv
 import os
 
-root_dir = 'data/nuscenes'
+root_dir = 'data/nuscenes_cidi_byd/bak'
 # info_path = 'data/nuscenes/nuscenes_infos_val.pkl'
 info_path = os.path.join(root_dir, 'nuscenes_infos_train.pkl')
 out_path = os.path.join(root_dir, 'nuscenes_infos_train.json')
@@ -21,7 +21,6 @@ data = mmcv.load(info_path)
 
 
 # max x: 1.5704445686377975 , min x: -4.712339399530078
-
 
 
 mmcv.dump(data, file=out_path, indent=4)

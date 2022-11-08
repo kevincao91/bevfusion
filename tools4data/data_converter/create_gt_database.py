@@ -265,14 +265,14 @@ def create_groundtruth_database(
     CLASSES = (
         "car",
         "truck",
-        "trailer",
-        "bus",
-        "construction_vehicle",
-        "bicycle",
-        "motorcycle",
+        # "trailer",
+        # "bus",
+        # "construction_vehicle",
+        # "bicycle",
+        # "motorcycle",
         "pedestrian",
-        "traffic_cone",
-        "barrier",
+        # "traffic_cone",
+        # "barrier",
     )
     all_db_infos = dict()
     for key in CLASSES:

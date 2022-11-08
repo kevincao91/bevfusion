@@ -56,222 +56,163 @@ init_info = {
 
 
 def make_data(file_list, nuscenes_infos, cam_calib_info, cams_channel_list, out_name):
+    ext_name = 'pcd.bin'
     infos = []
-    end_type = os.path.splitext(out_name)[-1]
-    print(end_type)
 
-    if end_type == '.json':
-        for ids, file_name in enumerate(file_list):
+    for ids, file_name in enumerate(file_list):
 
-            info = deepcopy(init_info)
-            nuscenes_info = nuscenes_infos['infos'][ids]
+        info = deepcopy(init_info)
+        nuscenes_info = nuscenes_infos['infos'][ids]
 
-            # 加载PCD路径
-            info["lidar_path"] = os.path.join(data_dir, ext_name, file_name)
+        # 加载PCD路径
+        info["lidar_path"] = os.path.join(data_dir, pcd_dir_name, file_name)
+        # 生成UUID替换token
+        token = uuid.uuid1()
+        token = str(token)
+        info["token"] = token
+        
+        # 假设激光雷达在ego中心
+        info["lidar2ego_translation"] = [0.0, 0.0, 0.0]
+        # 假设激光雷达在相对ego无旋转  wxyz   
+        info["lidar2ego_rotation"] = [1,0,0,0]
+        # lidir相对于car坐标系绕z轴旋转-90度。 wxyz
+        # info["lidar2ego_rotation"] = [ 0.70710678  ,0.          ,0.         ,-0.70710678]
+        
+        # 车辆信息套用nuscenes的原始数据
+        info["ego2global_translation"] = nuscenes_info["ego2global_translation"]
+        info["ego2global_rotation"] = nuscenes_info["ego2global_rotation"]
+        
+        # 时间信息 从文件名获取
+        info["timestamp"] = int(file_name.replace(ext_name, '').replace('.', ''))
+        
+        # 地图信息套用nuscenes的原始数据
+        info["location"] = nuscenes_info["location"]
+        
+        # 解析摄像头信息
+        cams = {}
+        img_file_name = file_name.replace(ext_name, 'jpg')
+
+        for channel in cams_channel_list:
+            cam_info = deepcopy(init_cam)
+            # 加载IMG路径
+            cam_info["data_path"] = os.path.join(data_dir, 'image', channel, img_file_name)
+            cam_info["type"] = channel
             # 生成UUID替换token
             token = uuid.uuid1()
             token = str(token)
-            info["token"] = token
-            
-            # 假设激光雷达在ego中心
-            info["lidar2ego_translation"] = [0.0, 0.0, 0.0]
-            # 假设激光雷达在相对ego无旋转  wxyz   
-            info["lidar2ego_rotation"] = [1,0,0,0]
-            # lidir相对于car坐标系绕z轴旋转-90度。 wxyz
-            # info["lidar2ego_rotation"] = [ 0.70710678  ,0.          ,0.         ,-0.70710678]
-            
-            # 车辆信息套用nuscenes的原始数据
-            info["ego2global_translation"] = nuscenes_info["ego2global_translation"]
-            info["ego2global_rotation"] = nuscenes_info["ego2global_rotation"]
-            
+            cam_info["sample_data_token"] = token
             # 时间信息 从文件名获取
-            info["timestamp"] = int(file_name.replace(ext_name, '').replace('.', ''))
+            cam_info["timestamp"] = int(file_name.replace(ext_name, '').replace('.', ''))
+
+            # 获取摄像头标定信息
+            calib_info = cam_calib_info[channel]
+            cam_info["sensor2ego_rotation"] = calib_info["sensor2ego_rotation"]
+            cam_info["sensor2ego_translation"] = calib_info["sensor2ego_translation"]
+            cam_info["sensor2lidar_rotation"] = calib_info["sensor2lidar_rotation"]
+            cam_info["sensor2lidar_translation"] = calib_info["sensor2lidar_translation"]
+            cam_info["camera_intrinsics"] = calib_info["camera_intrinsics"]
             
-            # 地图信息套用nuscenes的原始数据
-            info["location"] = nuscenes_info["location"]
+            # 车辆信息套用和激光一样的参数，假设没有运动差异
+            cam_info["ego2global_translation"] = info["ego2global_translation"]
+            cam_info["ego2global_rotation"] = info["ego2global_rotation"]
 
-            # 解析摄像头信息
-            cams = {}
-            img_file_name = file_name.replace(ext_name, 'jpg')
+            # 赋值
+            cams[channel] = cam_info
+        info["cams"] = cams
 
-            for channel in cams_channel_list:
-                cam_info = deepcopy(init_cam)
-                # 加载IMG路径
-                cam_info["data_path"] = os.path.join(data_dir, 'image', channel, img_file_name)
-                cam_info["type"] = channel
-                # 生成UUID替换token
-                token = uuid.uuid1()
-                token = str(token)
-                cam_info["sample_data_token"] = token
-                # 时间信息 从文件名获取
-                cam_info["timestamp"] = int(file_name.replace(ext_name, '').replace('.', ''))
+        # 读取标注文件
+        label_file = os.path.join(data_dir, label_dir_name, file_name.replace(ext_name, 'json'))
+        with open(label_file, 'r') as f:
+            anns = json.load(f)
+        # print(len(anns))
+        gt_boxes = []
+        gt_xyzs = []
+        gt_wlhs = []
+        gt_rzs = []
+        gt_names = []
+        gt_velocity = []
+        num_lidar_pts = []
+        num_radar_pts = []
+        valid_flag = []
 
-                # 获取摄像头标定信息
-                calib_info = cam_calib_info[channel]
-                cam_info["sensor2ego_rotation"] = calib_info["sensor2ego_rotation"].tolist()
-                cam_info["sensor2ego_translation"] = calib_info["sensor2ego_translation"].tolist()
-                cam_info["sensor2lidar_rotation"] = calib_info["sensor2lidar_rotation"].tolist()
-                cam_info["sensor2lidar_translation"] = calib_info["sensor2lidar_translation"].tolist()
-                cam_info["camera_intrinsics"] = calib_info["camera_intrinsics"]
-                
-                # 车辆信息套用和激光一样的参数，假设没有运动差异
-                cam_info["ego2global_translation"] = info["ego2global_translation"]
-                cam_info["ego2global_rotation"] = info["ego2global_rotation"]
+        for ann in anns:
+            obj_type = ann['obj_type']
+            # 小写化name
+            obj_type = obj_type.lower()
+            obj_position = ann['psr']['position']
+            obj_xyz = [obj_position['x'], obj_position['y'], obj_position['z']]
+            obj_scale = ann['psr']['scale']
+            # label.car:标注的尺寸是关于xyz的，nuscenes中的size是w,l,h顺序，所以这里调整顺序
+            obj_wlh = [obj_scale['y'], obj_scale['x'], obj_scale['z']]
+            # label.imu:在imu下的label就是wlh顺序，所以直接赋值不需要转。
+            # obj_wlh = [obj_scale['x'], obj_scale['y'], obj_scale['z']]
+            obj_rotation = ann['psr']['rotation']
+            obj_rz = obj_rotation['z']  # 标注出来的是弧度
+            gt_xyzs.append(obj_xyz)
+            gt_wlhs.append(obj_wlh)
+            gt_rzs.append(obj_rz)
+            gt_names.append(obj_type)
+            gt_velocity.append([0.06, 0.06])
+            num_lidar_pts.append(6)
+            num_radar_pts.append(6)
+            valid_flag.append(True)
 
-                # 赋值
-                cams[channel] = cam_info
-            info["cams"] = cams
+        # 添加gt数据
+        locs = np.array(gt_xyzs).reshape(-1, 3)
+        dims = np.array(gt_wlhs).reshape(-1, 3)
+        rots = np.array(gt_rzs).reshape(-1, 1)
+        gt_boxes = np.concatenate([locs, dims, -rots - np.pi / 2], axis=1)
+        info["gt_boxes"] = gt_boxes
+        info["gt_names"] = np.array(gt_names)
+        info["gt_velocity"] = np.array(gt_velocity).reshape(-1,2)
+        info["num_lidar_pts"] = np.array(num_lidar_pts)
+        info["num_radar_pts"] = np.array(num_radar_pts)
+        info["valid_flag"] = np.array(valid_flag, dtype=bool).reshape(-1)
 
-            # 读取标注文件
-            label_file = os.path.join(data_dir, 'label', file_name.replace(ext_name, 'json'))
-            with open(label_file, 'r') as f:
-                anns = json.load(f)
-            # print(len(anns))
-            gt_boxes = []
-            gt_names = []
-            gt_velocity = []
-            num_lidar_pts = []
-            num_radar_pts = []
-            valid_flag = []
+        # 挑选部分类别mask
+        CC = ['car', 'truck', 'pedestrian']
+        mask = [True if name in CC else False for name in info["gt_names"] ]
+        info["gt_boxes"] = info["gt_boxes"][mask]
+        info["gt_names"] = info["gt_names"][mask]
+        info["gt_velocity"] = info["gt_velocity"][mask]
+        info["num_lidar_pts"] = info["num_lidar_pts"][mask]
+        info["num_radar_pts"] = info["num_radar_pts"][mask]
+        info["valid_flag"] = info["valid_flag"][mask]
+        # print('gt_names ', len(info["gt_names"]), info["gt_names"])
 
-            for ann in anns:
-                obj_type = ann['obj_type']
-                # 小写化name
-                obj_type = obj_type.lower()
-                obj_position = ann['psr']['position']
-                obj_xyz = [obj_position['x'], obj_position['y'], obj_position['z']]
-                obj_scale = ann['psr']['scale']
-                # 标注的scale尺寸是关于xyz的，nuscenes中的size是w,h,l顺序，所以这里调整顺序
-                obj_wlh = [obj_scale['y'], obj_scale['x'], obj_scale['z']]
-                obj_rotation = ann['psr']['rotation']
-                obj_rxryrz = [obj_rotation['x'], obj_rotation['y'], obj_rotation['z']]
-                obj_boxe = obj_xyz + obj_wlh + obj_rxryrz[-1:]
-                gt_names.append(obj_type)
-                gt_boxes.append(obj_boxe)
-                gt_velocity.append([66, 66])
-                num_lidar_pts.append(6)
-                num_radar_pts.append(6)
-                valid_flag.append(True)
+        # kevin 提取原始数据
+        print('src ann data')
+        if file_name.replace('.'+ext_name, '')== '1639641371.699909925':
+            save_gt_boxes = np.concatenate([locs, dims, rots], axis=1)
+            print(save_gt_boxes.shape, save_gt_boxes.dtype)
+            save_gt_boxes = save_gt_boxes[mask]
+            print(save_gt_boxes.shape, save_gt_boxes.dtype)
+            lidar_name = file_name.replace('.'+ext_name, '')
+            ann_out = 'data/nuscenes_cidi_byd/data4test/0.{}.ann.bin'.format(lidar_name)
+            print(ann_out)
+            save_gt_boxes.tofile(ann_out)
+        # =================
+        
+        # kevin 提取转换后的存储的数据
+        print('saved pkl data')
+        if file_name.replace('.'+ext_name, '')== '1639641371.699909925':
+            save_gt_boxes = info["gt_boxes"]
+            print(save_gt_boxes.shape, save_gt_boxes.dtype)
+            lidar_name = file_name.replace('.'+ext_name, '')
+            ann_out = 'data/nuscenes_cidi_byd/data4test/1.{}.pkl.bin'.format(lidar_name)
+            print(ann_out)
+            save_gt_boxes.tofile(ann_out)
+        # =================
 
-            # 添加gt数据
-            info["gt_names"] = gt_names
-            info["gt_boxes"] = gt_boxes
-            info["gt_velocity"] = gt_velocity
-            info["num_lidar_pts"] = num_lidar_pts
-            info["num_radar_pts"] = num_radar_pts
-            info["valid_flag"] = valid_flag
-            infos.append(info)
+        # 强制输出6个cams
+        # src_cams = deepcopy(info["cams"])
+        # if len(src_cams) == 4:
+        #     src_cams['75'] = src_cams['73']
+        #     src_cams['76'] = src_cams['74']
+        # info["cams"] = src_cams
+        # ==============
 
-    else:
-        for ids, file_name in enumerate(file_list):
-
-            info = deepcopy(init_info)
-            nuscenes_info = nuscenes_infos['infos'][ids]
-
-            # 加载PCD路径
-            info["lidar_path"] = os.path.join(data_dir, ext_name, file_name)
-            # 生成UUID替换token
-            token = uuid.uuid1()
-            token = str(token)
-            info["token"] = token
-            
-            # 假设激光雷达在ego中心
-            info["lidar2ego_translation"] = [0.0, 0.0, 0.0]
-            # 假设激光雷达在相对ego无旋转  wxyz   
-            info["lidar2ego_rotation"] = [1,0,0,0]
-            # lidir相对于car坐标系绕z轴旋转-90度。 wxyz
-            # info["lidar2ego_rotation"] = [ 0.70710678  ,0.          ,0.         ,-0.70710678]
-            
-            # 车辆信息套用nuscenes的原始数据
-            info["ego2global_translation"] = nuscenes_info["ego2global_translation"]
-            info["ego2global_rotation"] = nuscenes_info["ego2global_rotation"]
-            
-            # 时间信息 从文件名获取
-            info["timestamp"] = int(file_name.replace(ext_name, '').replace('.', ''))
-            
-            # 地图信息套用nuscenes的原始数据
-            info["location"] = nuscenes_info["location"]
-            
-            # 解析摄像头信息
-            cams = {}
-            img_file_name = file_name.replace(ext_name, 'jpg')
-
-            for channel in cams_channel_list:
-                cam_info = deepcopy(init_cam)
-                # 加载IMG路径
-                cam_info["data_path"] = os.path.join(data_dir, 'image', channel, img_file_name)
-                cam_info["type"] = channel
-                # 生成UUID替换token
-                token = uuid.uuid1()
-                token = str(token)
-                cam_info["sample_data_token"] = token
-                # 时间信息 从文件名获取
-                cam_info["timestamp"] = int(file_name.replace(ext_name, '').replace('.', ''))
-
-                # 获取摄像头标定信息
-                calib_info = cam_calib_info[channel]
-                cam_info["sensor2ego_rotation"] = calib_info["sensor2ego_rotation"]
-                cam_info["sensor2ego_translation"] = calib_info["sensor2ego_translation"]
-                cam_info["sensor2lidar_rotation"] = calib_info["sensor2lidar_rotation"]
-                cam_info["sensor2lidar_translation"] = calib_info["sensor2lidar_translation"]
-                cam_info["camera_intrinsics"] = calib_info["camera_intrinsics"]
-                
-                # 车辆信息套用和激光一样的参数，假设没有运动差异
-                cam_info["ego2global_translation"] = info["ego2global_translation"]
-                cam_info["ego2global_rotation"] = info["ego2global_rotation"]
-
-                # 赋值
-                cams[channel] = cam_info
-            info["cams"] = cams
-
-            # 读取标注文件
-            label_file = os.path.join(data_dir, 'label', file_name.replace(ext_name, 'json'))
-            with open(label_file, 'r') as f:
-                anns = json.load(f)
-            # print(len(anns))
-            gt_boxes = []
-            gt_xyzs = []
-            gt_wlhs = []
-            gt_rzs = []
-            gt_names = []
-            gt_velocity = []
-            num_lidar_pts = []
-            num_radar_pts = []
-            valid_flag = []
-
-            for ann in anns:
-                obj_type = ann['obj_type']
-                # 小写化name
-                obj_type = obj_type.lower()
-                obj_position = ann['psr']['position']
-                obj_xyz = [obj_position['x'], obj_position['y'], obj_position['z']]
-                obj_scale = ann['psr']['scale']
-                # 标注的尺寸是关于xyz的，nuscenes中的size是w,h,l顺序，所以这里调整顺序
-                obj_wlh = [obj_scale['y'], obj_scale['x'], obj_scale['z']]
-                obj_rotation = ann['psr']['rotation']
-                obj_rz = obj_rotation['z']  # 标注出来的是弧度
-                gt_xyzs.append(obj_xyz)
-                gt_wlhs.append(obj_wlh)
-                gt_rzs.append(obj_rz)
-                gt_names.append(obj_type)
-                gt_velocity.append([66, 66])
-                num_lidar_pts.append(6)
-                num_radar_pts.append(6)
-                valid_flag.append(True)
-
-            # 添加gt数据
-            locs = np.array(gt_xyzs).reshape(-1, 3)
-            dims = np.array(gt_wlhs).reshape(-1, 3)
-            rots = np.array(gt_rzs).reshape(-1, 1)
-            gt_boxes = np.concatenate([locs, dims, rots], axis=1)
-            info["gt_boxes"] = gt_boxes
-            info["gt_names"] = np.array(gt_names)
-            info["gt_velocity"] = np.array(gt_velocity).reshape(-1,2)
-            info["num_lidar_pts"] = np.array(num_lidar_pts)
-            info["num_radar_pts"] = np.array(num_radar_pts)
-            info["valid_flag"] = np.array(valid_flag, dtype=bool).reshape(-1)
-                    
-            infos.append(info)
+        infos.append(info)
 
 
     # 输出数据字典
@@ -281,11 +222,7 @@ def make_data(file_list, nuscenes_infos, cam_calib_info, cams_channel_list, out_
     }
 
     out_path = os.path.join(data_dir, out_name)
-    # print(end_type)
-    if end_type == '.json':
-        mmcv.dump(data_dict, file=out_path, indent=4)
-    else:
-        mmcv.dump(data_dict, file=out_path)
+    mmcv.dump(data_dict, file=out_path)
     print('{} saved.'.format(out_path))
 
 
@@ -400,14 +337,14 @@ def create_groundtruth_database(
     CLASSES = (
         "car",
         "truck",
-        "trailer",
-        "bus",
-        "construction_vehicle",
-        "bicycle",
-        "motorcycle",
+        # "trailer",
+        # "bus",
+        # "construction_vehicle",
+        # "bicycle",
+        # "motorcycle",
         "pedestrian",
-        "traffic_cone",
-        "barrier",
+        # "traffic_cone",
+        # "barrier",
     )
     all_db_infos = dict()
     for key in CLASSES:
@@ -553,6 +490,9 @@ def get_cam_calib_data(data_dir, cams_channel_list):
         cam2imu_trans = np.array(calib['translate'], dtype=np.float32)
         imu2car_quat_xyzw = np.array(calib['rotation'], dtype=np.float32)
         imu2car_trans = np.array(calib['translation'], dtype=np.float32)
+        # kevin  对融合匹配度的测试
+        # imu2car_trans = imu2car_trans * 1.2
+        # ===
         cam_intrinsic = np.array(calib['intrinsic'], dtype=np.float32).reshape(3,3)
         cam_distort = calib['distort']
 
@@ -623,7 +563,8 @@ if __name__ == "__main__":
     
     # 数据集路径
     data_dir = './data/nuscenes_cidi_byd'
-    ext_name = 'pcd.bin'
+    pcd_dir_name = 'pcd.bin.car'
+    label_dir_name = 'label.car'
     # 采集相机通道信息
     cams_channel_list = os.listdir(os.path.join(data_dir, 'image'))
     cams_channel_list.sort()
@@ -636,9 +577,9 @@ if __name__ == "__main__":
     # 采集相机通道标定信息
     cam_calib_info = get_cam_calib_data(data_dir, cams_channel_list)
     # 分配子集
-    all_pcd_files = os.listdir(os.path.join(data_dir, ext_name))
+    all_pcd_files = os.listdir(os.path.join(data_dir, pcd_dir_name))
     print('all_pcd_files ', len(all_pcd_files))
-    random.shuffle(all_pcd_files)
+    # random.shuffle(all_pcd_files)  # 测试期保持不变
     train_files = all_pcd_files[:100]
     print('train_files ', len(train_files))
     valid_files = all_pcd_files[-10:]
@@ -646,6 +587,7 @@ if __name__ == "__main__":
     # 生成pkl
     make_data(train_files,nuscenes_infos,cam_calib_info,cams_channel_list, 'nuscenes_infos_train.pkl')
     make_data(valid_files,nuscenes_infos,cam_calib_info,cams_channel_list, 'nuscenes_infos_val.pkl')
+    exit()
 
 
     # 生成 gt ==================================================================
