@@ -2,9 +2,9 @@ import numpy as np
 import mmcv
 import os
 
-dst_dir = 'data/nuscenes_sampled+cidi_byd'
-A_src_dir = 'data/nuscenes_sampled'
-B_src_dir = 'data/nuscenes_cidi_byd'
+dst_dir = 'data/nuscenes_cidi_byd+cidi_bkjw'
+A_src_dir = 'data/nuscenes_cidi_byd'
+B_src_dir = 'data/nuscenes_cidi_bkjw'
 A_info_path = os.path.join(A_src_dir, 'nuscenes_infos_train.pkl')
 A_dbinfo_path = os.path.join(A_src_dir, 'nuscenes_dbinfos_train.pkl')
 B_info_path = os.path.join(B_src_dir, 'nuscenes_infos_train.pkl')

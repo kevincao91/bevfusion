@@ -2,10 +2,10 @@ import numpy as np
 import mmcv
 import os
 
-root_dir = 'data/nuscenes_cidi_byd/bak'
+root_dir = 'data/nuscenes_cidi_bkjw'
 # info_path = 'data/nuscenes/nuscenes_infos_val.pkl'
-info_path = os.path.join(root_dir, 'nuscenes_infos_train.pkl')
-out_path = os.path.join(root_dir, 'nuscenes_infos_train.json')
+info_path = os.path.join(root_dir, 'nuscenes_infos_val.pkl')
+out_path = os.path.join(root_dir, 'nuscenes_infos_val.json')
 
 data = mmcv.load(info_path)
 

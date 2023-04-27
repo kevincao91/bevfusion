@@ -1,0 +1,6 @@
+model:
+  encoders:
+    camera: null
+
+# kevin
+gt_paste_stop_epoch: 38

@@ -55,15 +55,19 @@ init_info = {
             "valid_flag": []
             }
 #
+obj_map_dict = {'pedestrians': 'pedestrian',
+                'van': 'car',
+                }
+#
 global_timestamp = 1234567899123456789
 
 
 def make_data(file_list, nuscenes_infos, cam_calib_info, cams_channel_list, out_name, test_flag):
-    ext_name = 'pcd.bin'
+    ext_name = '.pcd.bin'
     infos = []
 
     # for ids, file_name in enumerate(file_list):
-    for file_name in tqdm(file_list):
+    for file_path in tqdm(file_list):
 
         global global_timestamp
         global_timestamp += 1
@@ -73,7 +77,8 @@ def make_data(file_list, nuscenes_infos, cam_calib_info, cams_channel_list, out_
         nuscenes_info = nuscenes_infos['infos'][0]
 
         # 加载PCD路径
-        info["lidar_path"] = os.path.join(data_dir, pcd_dir_name, file_name)
+        info["lidar_path"] = file_path
+        file_name = os.path.split(file_path)[-1]
         # 生成UUID替换token
         token = uuid.uuid1()
         token = str(token)
@@ -99,12 +104,13 @@ def make_data(file_list, nuscenes_infos, cam_calib_info, cams_channel_list, out_
         
         # 解析摄像头信息
         cams = {}
-        img_file_name = file_name.replace(ext_name, 'jpg')
+        img_file_name = file_name.replace(ext_name, '.jpg')
+        scene_name = file_path.split('/')[-3]
 
         for channel in cams_channel_list:
             cam_info = deepcopy(init_cam)
             # 加载IMG路径
-            cam_info["data_path"] = os.path.join(data_dir, 'image', channel, img_file_name)
+            cam_info["data_path"] = os.path.join(data_dir, scene_name, 'image', channel, img_file_name)
             cam_info["type"] = channel
             # 生成UUID替换token
             token = uuid.uuid1()
@@ -132,7 +138,7 @@ def make_data(file_list, nuscenes_infos, cam_calib_info, cams_channel_list, out_
 
         # 读取标注文件
         if not test_flag:
-            label_file = os.path.join(data_dir, label_dir_name, file_name.replace(ext_name, 'json'))
+            label_file = os.path.join(data_dir, scene_name, label_dir_name, file_name.replace(ext_name, '.json'))
             with open(label_file, 'r') as f:
                 anns = json.load(f)
             # print(len(anns))
@@ -163,6 +169,8 @@ def make_data(file_list, nuscenes_infos, cam_calib_info, cams_channel_list, out_
                 gt_xyzs.append(obj_xyz)
                 gt_wlhs.append(obj_wlh)
                 gt_rzs.append(obj_rz)
+                if obj_type in obj_map_dict:
+                    obj_type = obj_map_dict[obj_type]
                 gt_names.append(obj_type)
                 gt_velocity.append([0.06, 0.06])
                 num_lidar_pts.append(6)
@@ -358,15 +366,11 @@ def create_groundtruth_database(
     CLASSES = (
         "car",
         "truck",
-        # "trailer",
-        # "bus",
-        # "construction_vehicle",
-        # "bicycle",
-        # "motorcycle",
         "pedestrian",
         "rider",
-        # "traffic_cone",
-        # "barrier",
+        "bus",
+        "bicycle",
+        "traffic_cone",
     )
     all_db_infos = dict()
     for key in CLASSES:
@@ -500,7 +504,7 @@ def get_cam_calib_data(data_dir, cams_channel_list):
     for channel in cams_channel_list:
         print(channel)
 
-        calib_file = os.path.join(data_dir, 'calib', channel+'.json')
+        calib_file = os.path.join(data_dir, 'scene_0000', 'calib', channel+'.json')
         with open(calib_file, 'r') as f:
             calib = json.load(f)
         calib_info = {}
@@ -584,11 +588,20 @@ def get_cam_calib_data(data_dir, cams_channel_list):
 if __name__ == "__main__":
     
     # 数据集路径
-    data_dir = './data/nuscenes_cidi_h5_202212'
+    data_dir = './data/nuscenes_cidi_h5_202211_split2scene'
     pcd_dir_name = 'pcd.car.bin'
-    label_dir_name = 'label.car'
+    label_dir_name = 'label'
+    # 采集场景信息
+    with open(osp.join(data_dir, 'datasets.json'), 'r') as f:
+        datasets = json.load(f)
+    train_scene = datasets['train']
+    val_scene = datasets['val']
+    # val_scene = datasets['train'][1:2]
+    print('train scene {}:\n'.format(len(train_scene)), train_scene)
+    print('val scene {}:\n'.format(len(val_scene)), val_scene)
+
     # 采集相机通道信息
-    cams_channel_list = os.listdir(os.path.join(data_dir, 'image'))
+    cams_channel_list = os.listdir(os.path.join(data_dir, 'scene_0000', 'image'))
     cams_channel_list.sort()
     print('{} cams channel'.format(len(cams_channel_list)), cams_channel_list)
 
@@ -598,22 +611,29 @@ if __name__ == "__main__":
     nuscenes_infos = mmcv.load('./data/nuscenes/nuscenes_infos_train.pkl')
     # 采集相机通道标定信息
     cam_calib_info = get_cam_calib_data(data_dir, cams_channel_list)
-    # 分配子集
-    all_pcd_files = os.listdir(os.path.join(data_dir, pcd_dir_name))
-    # 排序方式 ==
-    all_pcd_files.sort()            # 名称排序
-    # random.shuffle(all_pcd_files)   # 随机顺序
-    # ===
-    total_num = len(all_pcd_files)
-    print('all_pcd_files ', total_num)
     
-    train_files = all_pcd_files[:round(total_num*0.9)]
+    # 分配子集
+    train_files = []
+    for scene in train_scene:
+        files_name_list = os.listdir(os.path.join(data_dir, scene, pcd_dir_name))
+        for files_name in files_name_list:
+            train_files.append(os.path.join(data_dir, scene, pcd_dir_name, files_name))
+    # 排序方式 ==
+    # train_files.sort()            # 名称排序
+    # random.shuffle(train_files)   # 随机顺序
+    # ===
     print('train_files ', len(train_files))
-    valid_files = all_pcd_files[round(total_num*0.9):]
-    valid_files = all_pcd_files[:]
+    
+    valid_files = []
+    for scene in val_scene:
+        files_name_list = os.listdir(os.path.join(data_dir, scene, pcd_dir_name))
+        for files_name in files_name_list:
+            valid_files.append(os.path.join(data_dir, scene, pcd_dir_name, files_name))
+    valid_files.sort()            # 名称排序
     print('valid_files ', len(valid_files))
+    # print(valid_files)
     # 生成pkl
-    for_test = True   # test 标志，是否使用真实label,  true => 使用假label
+    for_test = False   # test 标志，是否使用真实label,  true => 使用假label
     # make_data(train_files,nuscenes_infos,cam_calib_info,cams_channel_list, 'nuscenes_infos_train.pkl', for_test)
     make_data(valid_files,nuscenes_infos,cam_calib_info,cams_channel_list, 'nuscenes_infos_val.pkl', for_test)
     exit()

@@ -1,0 +1,51 @@
+
+# kevin
+# voxel_size: [0.150, 0.150, 0.4]
+voxel_size: [0.075, 0.075, 0.2]
+
+point_cloud_range: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
+# point_cloud_range: [-36.0, -54.0, -5.0, 72.0, 54.0, 3.0]
+# ====
+
+model:
+  encoders:
+    lidar:
+      voxelize:
+        max_num_points: 10
+        point_cloud_range: ${point_cloud_range}
+        voxel_size: ${voxel_size}
+        max_voxels: [120000, 160000]
+      backbone:
+        type: DenseEncoder
+        in_channels: 5
+        # kevin
+        sparse_shape: [1440, 1440, 41]
+        # ===
+        output_channels: 128
+        order:
+          - conv
+          - norm
+          - act
+        encoder_channels:
+          - [16, 32]
+          - [32, 64]
+          - [64, 128]
+          - [128]
+        encoder_paddings:
+          - [1, 1]
+          - [1, 1]
+          - [1, [1, 1, 0]]
+          - [1]
+        block_type: basicblock
+  heads:
+    object:
+      train_cfg:
+        # kevin
+        grid_size: [1440, 1440, 41]
+        # grid_size: [720, 720, 21]
+        # ===
+      test_cfg:
+        # kevin
+        grid_size: [1440, 1440, 41]
+        # grid_size: [720, 720, 21]
+        # ===
