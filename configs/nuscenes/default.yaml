@@ -1,8 +1,9 @@
 dataset_type: NuScenesDataset
-dataset_root: data/nuscenes/
+dataset_root: data/nuscenes_cidi_h5_202211_split2scene/
+# dataset_root: data/nuscenes_cidi_h5_202212/
 gt_paste_stop_epoch: -1
 reduce_beams: 32
-load_dim: 5
+load_dim: 5 
 use_dim: 5
 load_augmented: null
 
@@ -11,28 +12,60 @@ voxel_size: [0.1, 0.1, 0.2]
 image_size: [256, 704]
 
 augment2d:
+  # kevin  train
   resize: [[0.38, 0.55], [0.48, 0.48]]
   rotate: [-5.4, 5.4]
+  # kevin  validate
+  # resize: [[0.48, 0.48], [0.48, 0.48]]
+  # rotate: [0, 0]
+  # ==
   gridmask:
     prob: 0.0
     fixed_prob: true
 
 augment3d:
+  # kevin train
   scale: [0.9, 1.1]
   rotate: [-0.78539816, 0.78539816]
   translate: 0.5
+  # kevin validate
+  # scale: [1.0, 1.0]
+  # rotate: [0.0, 0.0]
+  # translate: 0.0
 
 object_classes:
+  # 对应10类
+  # - car
+  # - truck
+  # - construction_vehicle
+  # - bus
+  # - trailer
+  # - barrier
+  # - motorcycle
+  # - bicycle
+  # - pedestrian
+  # - traffic_cone
+  # 对应3类
+  # - car
+  # - truck
+  # - pedestrian
+  # 对应4类
+  # - car
+  # - truck
+  # - pedestrian
+  # - rider
+  # 对应2类
+  # - car
+  # - truck
+  # 对应7类
   - car
   - truck
-  - construction_vehicle
-  - bus
-  - trailer
-  - barrier
-  - motorcycle
-  - bicycle
   - pedestrian
+  - rider
+  - bus
+  - bicycle
   - traffic_cone
+  # ==
 
 map_classes:
   - drivable_area
@@ -65,11 +98,17 @@ train_pipeline:
     load_augmented: ${load_augmented}
   -
     type: LoadPointsFromMultiSweeps
-    sweeps_num: 9
+    # kevin
+    # sweeps_num: 9
+    sweeps_num: 0
+    #
     load_dim: ${load_dim}
     use_dim: ${use_dim}
     reduce_beams: ${reduce_beams}
-    pad_empty_sweeps: true
+    # kevin
+    # pad_empty_sweeps: true
+    pad_empty_sweeps: false
+    #
     remove_close: true
     load_augmented: ${load_augmented}
   -
@@ -90,25 +129,27 @@ train_pipeline:
           car: 5
           truck: 5
           bus: 5
-          trailer: 5
-          construction_vehicle: 5
           traffic_cone: 5
-          barrier: 5
-          motorcycle: 5
           bicycle: 5
           pedestrian: 5
+          rider: 5
+          # barrier: 5
+          # motorcycle: 5
+          # trailer: 5
+          # construction_vehicle: 5
       classes: ${object_classes}
       sample_groups:
-        car: 2
-        truck: 3
-        construction_vehicle: 7
-        bus: 4
-        trailer: 6
-        barrier: 2
-        motorcycle: 6
-        bicycle: 6
-        pedestrian: 2
+        car: 2  # 2
+        truck: 2    # 3
+        bus: 2
+        bicycle: 2
+        pedestrian: 2   # 2
+        rider: 2
         traffic_cone: 2
+        # construction_vehicle: 7
+        # trailer: 6
+        # barrier: 2
+        # motorcycle: 6
       points_loader:
         type: LoadPointsFromFile
         coord_type: LIDAR
@@ -121,7 +162,10 @@ train_pipeline:
     resize_lim: ${augment2d.resize[0]}
     bot_pct_lim: [0.0, 0.0]
     rot_lim: ${augment2d.rotate}
-    rand_flip: true
+    # kevin
+    # rand_flip: true
+    rand_flip: false
+    # ==
     is_train: true
   -
     type: GlobalRotScaleTrans
@@ -135,8 +179,10 @@ train_pipeline:
     xbound: [-50.0, 50.0, 0.5]
     ybound: [-50.0, 50.0, 0.5]
     classes: ${map_classes}
+  # kevin  train
   -
     type: RandomFlip3D
+  # ==
   -
     type: PointsRangeFilter
     point_cloud_range: ${point_cloud_range}
@@ -197,11 +243,17 @@ test_pipeline:
     load_augmented: ${load_augmented}
   -
     type: LoadPointsFromMultiSweeps
-    sweeps_num: 9
+    # kevin
+    # sweeps_num: 9
+    sweeps_num: 0
+    #
     load_dim: ${load_dim}
     use_dim: ${use_dim}
     reduce_beams: ${reduce_beams}
-    pad_empty_sweeps: true
+    # kevin
+    # pad_empty_sweeps: true
+    pad_empty_sweeps: false
+    #
     remove_close: true
     load_augmented: ${load_augmented}
   -
@@ -258,8 +310,8 @@ test_pipeline:
       - lidar_aug_matrix
 
 data:
-  samples_per_gpu: 4
-  workers_per_gpu: 4
+  samples_per_gpu: 1   # 融合数据超过1会卡死
+  workers_per_gpu: 1
   train:
     type: CBGSDataset
     dataset:
@@ -295,6 +347,6 @@ data:
     box_type_3d: LiDAR
 
 evaluation:
-  interval: 1
+  interval: 100
   pipeline: ${test_pipeline}
  

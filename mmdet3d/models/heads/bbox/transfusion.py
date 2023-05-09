@@ -229,7 +229,18 @@ class TransFusionHead(nn.Module):
         lidar_feat_flatten = lidar_feat.view(
             batch_size, lidar_feat.shape[1], -1
         )  # [BS, C, H*W]
+
+        # kevin
+        # print('TransFusionHead self.bev_pos'.center(20,'='))
+        # print(self.bev_pos.size())
+        # ===
+
         bev_pos = self.bev_pos.repeat(batch_size, 1, 1).to(lidar_feat.device)
+
+        # kevin
+        # print('TransFusionHead bev_pos'.center(20,'='))
+        # print(bev_pos.size())
+        # ===
 
         #################################
         # image guided query initialization
@@ -237,6 +248,11 @@ class TransFusionHead(nn.Module):
         dense_heatmap = self.heatmap_head(lidar_feat)
         dense_heatmap_img = None
         heatmap = dense_heatmap.detach().sigmoid()
+        # kevin
+        # print('TransFusionHead heatmap'.center(20,'='))
+        # print(heatmap.size())
+        # print(heatmap)
+        # ===
         padding = self.nms_kernel_size // 2
         local_max = torch.zeros_like(heatmap)
         # equals to nms radius = voxel_size * out_size_factor * kenel_size
@@ -244,16 +260,77 @@ class TransFusionHead(nn.Module):
             heatmap, kernel_size=self.nms_kernel_size, stride=1, padding=0
         )
         local_max[:, :, padding:(-padding), padding:(-padding)] = local_max_inner
+
+        # kevin
+        # print('TransFusionHead local_max'.center(20,'='))
+        # print(local_max.size())
+        # print(local_max)
+        # ===
+
         ## for Pedestrian & Traffic_cone in nuScenes
-        if self.test_cfg["dataset"] == "nuScenes":
+        # kevin  # 对应10类
+        # if self.test_cfg["dataset"] == "nuScenes":  
+        #     local_max[
+        #         :,
+        #         8,
+        #     ] = F.max_pool2d(heatmap[:, 8], kernel_size=1, stride=1, padding=0)
+        #     local_max[
+        #         :,
+        #         9,
+        #     ] = F.max_pool2d(heatmap[:, 9], kernel_size=1, stride=1, padding=0)
+        # if self.test_cfg["dataset"] == "nuScenes":  # 对应3类
+        #     local_max[
+        #         :,
+        #         2,
+        #     ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0)
+        # if self.test_cfg["dataset"] == "nuScenes":  # 对应4类
+        #     local_max[
+        #         :,
+        #         2,
+        #     ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0)
+        #     local_max[
+        #         :,
+        #         3,
+        #     ] = F.max_pool2d(heatmap[:, 3], kernel_size=1, stride=1, padding=0)
+        # if self.test_cfg["dataset"] == "nuScenes":  # 对应2类
+        #     local_max[
+        #         :,
+        #         1,
+        #     ] = F.max_pool2d(heatmap[:, 1], kernel_size=1, stride=1, padding=0)
+        if self.test_cfg["dataset"] == "nuScenes":  # 对应7类
+            
+            # kevin
+            # print('TransFusionHead local_max_in'.center(20,'='))
+            # print(local_max.size())
+            # print(local_max)
+            # ===
+            # local_max[
+            #     :,
+            #     1,
+            # ] = F.max_pool2d(heatmap[:, 1], kernel_size=5, stride=1, padding=2)
+            # local_max[
+            #     :,
+            #     4,
+            # ] = F.max_pool2d(heatmap[:, 4], kernel_size=5, stride=1, padding=2)
+            
+            
             local_max[
                 :,
-                8,
-            ] = F.max_pool2d(heatmap[:, 8], kernel_size=1, stride=1, padding=0)
+                2,
+            ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0)
             local_max[
                 :,
-                9,
-            ] = F.max_pool2d(heatmap[:, 9], kernel_size=1, stride=1, padding=0)
+                3,
+            ] = F.max_pool2d(heatmap[:, 3], kernel_size=1, stride=1, padding=0)
+            local_max[
+                :,
+                5,
+            ] = F.max_pool2d(heatmap[:, 5], kernel_size=1, stride=1, padding=0)
+            local_max[
+                :,
+                6,
+            ] = F.max_pool2d(heatmap[:, 6], kernel_size=1, stride=1, padding=0)
+        # =====
         elif self.test_cfg["dataset"] == "Waymo":  # for Pedestrian & Cyclist in Waymo
             local_max[
                 :,
@@ -263,13 +340,24 @@ class TransFusionHead(nn.Module):
                 :,
                 2,
             ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0)
-        heatmap = heatmap * (heatmap == local_max)
+        heatmap = heatmap * (heatmap == local_max)  # Kevin 这里的操作像是非极大值抑制，只突出局部最大值，非局部最大值置零，在每个类别特征层面操作
         heatmap = heatmap.view(batch_size, heatmap.shape[1], -1)
+        # kevin
+        # print('TransFusionHead heatmap'.center(20,'='))
+        # print(heatmap.size())
+        # print(heatmap)
+        # ===
 
         # top #num_proposals among all classes
         top_proposals = heatmap.view(batch_size, -1).argsort(dim=-1, descending=True)[
             ..., : self.num_proposals
         ]
+        # kevin
+        # print('TransFusionHead top_proposals'.center(20,'='))
+        # print(top_proposals.size())
+        # print(top_proposals)
+        # ===
+
         top_proposals_class = top_proposals // heatmap.shape[-1]
         top_proposals_index = top_proposals % heatmap.shape[-1]
         query_feat = lidar_feat_flatten.gather(
@@ -279,13 +367,30 @@ class TransFusionHead(nn.Module):
             dim=-1,
         )
         self.query_labels = top_proposals_class
+        # kevin
+        # print('TransFusionHead top_proposals'.center(20,'='))
+        # print(query_feat.size())
+        # print(query_feat)
+        # ===
 
         # add category embedding
         one_hot = F.one_hot(top_proposals_class, num_classes=self.num_classes).permute(
             0, 2, 1
         )
+        # kevin
+        # print('TransFusionHead one_hot'.center(20,'='))
+        # print(one_hot.size())  # torch.Size([1, 7, 200])
+        # print(one_hot)
+        # ===
+
         query_cat_encoding = self.class_encoding(one_hot.float())
-        query_feat += query_cat_encoding
+        query_feat += query_cat_encoding    # 特征和类别相加 尺度不变
+        
+        # kevin
+        # print('TransFusionHead query_feat'.center(20,'='))
+        # print(query_feat.size())  # torch.Size([1, 128, 200])
+        # print(query_feat)
+        # ===
 
         query_pos = bev_pos.gather(
             index=top_proposals_index[:, None, :]
@@ -293,6 +398,12 @@ class TransFusionHead(nn.Module):
             .expand(-1, -1, bev_pos.shape[-1]),
             dim=1,
         )
+
+        # kevin
+        # print('TransFusionHead query_pos'.center(20,'='))
+        # print(query_pos.size())  # torch.Size([1, 128, 200])
+        # print(query_pos)
+        # ===
 
         #################################
         # transformer decoder layer (LiDAR feature as K,V)
@@ -307,6 +418,12 @@ class TransFusionHead(nn.Module):
                 query_feat, lidar_feat_flatten, query_pos, bev_pos
             )
 
+            # kevin
+            # print('TransFusionHead decoder_layers {}  query_feat'.format(i).center(20,'='))
+            # print(query_feat.size())  # torch.Size([1, 128, 200])
+            # print(query_pos)
+            # ===
+
             # Prediction
             res_layer = self.prediction_heads[i](query_feat)
             res_layer["center"] = res_layer["center"] + query_pos.permute(0, 2, 1)
@@ -317,8 +434,8 @@ class TransFusionHead(nn.Module):
             query_pos = res_layer["center"].detach().clone().permute(0, 2, 1)
 
         #################################
-        # transformer decoder layer (img feature as K,V)
-        #################################
+
+
         ret_dicts[0]["query_heatmap_score"] = heatmap.gather(
             index=top_proposals_index[:, None, :].expand(-1, self.num_classes, -1),
             dim=-1,
@@ -841,7 +958,7 @@ class TransFusionHead(nn.Module):
         assert len(rets[0]) == 1
         res = [
             [
-                metas[0]["box_type_3d"](
+                metas[0]["box_type_3d"]( # <class 'mmdet3d.core.bbox.structures.lidar_box3d.LiDARInstance3DBoxes'>
                     rets[0][0]["bboxes"], box_dim=rets[0][0]["bboxes"].shape[-1]
                 ),
                 rets[0][0]["scores"],

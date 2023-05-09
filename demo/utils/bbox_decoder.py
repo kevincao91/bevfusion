@@ -1,10 +1,7 @@
 import torch
 
-from mmdet.core.bbox.builder import BBOX_CODERS
 
-
-@BBOX_CODERS.register_module()
-class TransFusionBBoxCoder(object):
+class TransFusionBBoxCoder():
     def __init__(self,
                  pc_range,
                  out_size_factor:int,
@@ -22,32 +19,11 @@ class TransFusionBBoxCoder(object):
 
 
     def decode(self, heatmap, rot, dim, center, height, vel, filter:bool=False):
-        """Decode bboxes.
-        Args:
-            heat (torch.Tensor): Heatmap with the shape of [B, num_cls, num_proposals].
-            rot (torch.Tensor): Rotation with the shape of
-                [B, 1, num_proposals].
-            dim (torch.Tensor): Dim of the boxes with the shape of
-                [B, 3, num_proposals].
-            center (torch.Tensor): bev center of the boxes with the shape of
-                [B, 2, num_proposals]. (in feature map metric)
-            hieght (torch.Tensor): height of the boxes with the shape of
-                [B, 2, num_proposals]. (in real world metric)
-            vel (torch.Tensor): Velocity with the shape of [B, 2, num_proposals].
-            filter: if False, return all box without checking score and center_range
-        Returns:
-            list[dict]: Decoded boxes.
-        """
+
         # class label
-        # final_preds = heatmap.max(1, keepdims=False).indices
-        # final_scores = heatmap.max(1, keepdims=False).values
+
         final_preds = heatmap.max(1).indices
         final_scores = heatmap.max(1).values
-
-        # kevin onnx
-        center = center
-        # ====
-
 
         # change size to real world metric
         center[:, 0, :] = center[:, 0, :] * self.out_size_factor * self.voxel_size[0] + self.pc_range[0]
@@ -59,10 +35,7 @@ class TransFusionBBoxCoder(object):
         height = height - dim[:, 2:3, :] * 0.5  # gravity center to bottom center
         rots, rotc = rot[:, 0:1, :], rot[:, 1:2, :]
         
-        # kevin onnx
-        # rot = torch.atan2(rots, rotc)
-        rot = torch.atan(rots/(rotc+1e-6)) 
-        # ===
+        rot = torch.atan2(rots, rotc)
 
         if vel is None:
             final_box_preds = torch.cat([center, height, dim, rot], dim=1).permute(0, 2, 1)

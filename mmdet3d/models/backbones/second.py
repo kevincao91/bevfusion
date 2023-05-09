@@ -91,7 +91,14 @@ class SECOND(BaseModule):
             tuple[torch.Tensor]: Multi-scale features.
         """
         outs = []
-        for i in range(len(self.blocks)):
-            x = self.blocks[i](x)
+        # kevin onnx
+        # for i in range(len(self.blocks)):
+        for inner_module in self.blocks:
+            x = inner_module(x)
             outs.append(x)
-        return tuple(outs)
+        # kevin
+        # print('SECOND-features[0]'.center(20,'='), outs[0].size())
+        # print('SECOND-features[1]'.center(20,'='), outs[1].size())
+        # ===
+
+        return (outs[0], outs[1])

@@ -6,9 +6,16 @@ model:
       auxiliary: true
       in_channels: null
       hidden_channel: 128
-      num_classes: 10
+      # kevin
+      # num_classes: 10
+      # num_classes: 4
+      num_classes: 7
+      # =======
       num_decoder_layers: 1
+      # kevin
       num_heads: 8
+      # num_heads: 4
+      # =======
       nms_kernel_size: 3
       ffn_channel: 256
       dropout: 0.1
@@ -56,7 +63,10 @@ model:
       bbox_coder:
         type: TransFusionBBoxCoder
         pc_range: ${point_cloud_range[:2]}
+        # kevin
         post_center_range: [-61.2, -61.2, -10.0, 61.2, 61.2, 10.0]
+        # post_center_range: [-61.2, -32.2, -10.0, 61.2, 32.2, 10.0]
+        # ===
         score_threshold: 0.0
         out_size_factor: 8
         voxel_size: ${voxel_size[:2]}

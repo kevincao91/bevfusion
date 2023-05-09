@@ -1,5 +1,11 @@
+
+# kevin
+# voxel_size: [0.150, 0.150, 0.4]
 voxel_size: [0.075, 0.075, 0.2]
+
 point_cloud_range: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
+# point_cloud_range: [-36.0, -54.0, -5.0, 72.0, 54.0, 3.0]
+# ====
 
 model:
   encoders:
@@ -12,26 +18,45 @@ model:
       backbone:
         type: SparseEncoder
         in_channels: 5
+        # kevin
         sparse_shape: [1440, 1440, 41]
+        # sparse_shape: [720, 720, 21]
+        # ===
         output_channels: 128
         order:
           - conv
           - norm
           - act
+        # encoder_channels:
+        #   - [16, 16, 32]
+        #   - [32, 32, 64]
+        #   - [64, 64, 128]
+        #   - [128, 128]
+        # encoder_paddings:
+        #   - [0, 0, 1]
+        #   - [0, 0, 1]
+        #   - [0, 0, [1, 1, 0]]
+        #   - [0, 0]
         encoder_channels:
-          - [16, 16, 32]
-          - [32, 32, 64]
-          - [64, 64, 128]
+          - [16, 32]
+          - [32, 64]
+          - [64, 128]
           - [128, 128]
         encoder_paddings:
-          - [0, 0, 1]
-          - [0, 0, 1]
-          - [0, 0, [1, 1, 0]]
+          - [0, 1]
+          - [0, 1]
+          - [0, [1, 1, 0]]
           - [0, 0]
         block_type: basicblock
   heads:
     object:
       train_cfg:
+        # kevin
         grid_size: [1440, 1440, 41]
+        # grid_size: [720, 720, 21]
+        # ===
       test_cfg:
+        # kevin
         grid_size: [1440, 1440, 41]
+        # grid_size: [720, 720, 21]
+        # ===

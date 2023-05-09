@@ -2,7 +2,9 @@ import torch
 import torch.nn as nn
 from mmdet.models.backbones.swin import WindowMSA, ShiftWindowMSA
 from mmdet3d.ops.spconv import SparseConv3d, SubMConv3d
-from mmdet3d.models.utils.transformer import MultiheadAttention
+# kevin onnx
+from mmdet3d.models.utils.transformer_kevin import MultiheadAttention
+# ===
 from typing import Union
 from thop import profile
 

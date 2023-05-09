@@ -122,6 +122,18 @@ class NuScenesDataset(Custom3DDataset):
         "barrier",
     )
 
+    # kevin
+    # 对应7类
+    # CLASSES = (
+    #     "car",
+    #     "truck",
+    #     "pedestrian",
+    #     "rider",
+    #     "bus",
+    #     "bicycle",
+    #     "traffic_cone",
+    # )
+
     def __init__(
         self,
         ann_file,
@@ -547,6 +559,9 @@ class NuScenesDataset(Custom3DDataset):
         Returns:
             dict[str, float]: Results of each evaluation metric.
         """
+        # kevin
+        jsonfile_prefix = './tmp_data'
+        # ===
 
         metrics = {}
 
@@ -555,6 +570,9 @@ class NuScenesDataset(Custom3DDataset):
 
         if "boxes_3d" in results[0]:
             result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
+            # kevin
+            print('evaluate:  ', result_files, tmp_dir)
+            # ===
 
             if isinstance(result_files, dict):
                 for name in result_names:
@@ -564,8 +582,10 @@ class NuScenesDataset(Custom3DDataset):
             elif isinstance(result_files, str):
                 metrics.update(self._evaluate_single(result_files))
 
-            if tmp_dir is not None:
-                tmp_dir.cleanup()
+            # kevin
+            # if tmp_dir is not None:
+            #     tmp_dir.cleanup()
+            # ===
 
         return metrics
 

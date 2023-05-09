@@ -1,0 +1,20 @@
+{
+    "class_range": {
+      "Car": 50,
+      "Truck": 50,
+      "Pedestrian": 40,
+      "Rider": 40,
+      "Bus": 50,
+      "Bicycle": 40,
+      "Traffic_Cone": 30,
+      "special_vehicle": 50
+    },
+    "dist_fcn": "center_distance",
+    "dist_ths": [0.5, 1.0, 2.0, 4.0],
+    "dist_th_tp": 2.0,
+    "min_recall": 0.1,
+    "min_precision": 0.1,
+    "max_boxes_per_sample": 500,
+    "mean_ap_weight": 5
+  }
+  

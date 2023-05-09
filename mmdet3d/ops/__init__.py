@@ -37,8 +37,11 @@ from .roiaware_pool3d import (
     points_in_boxes_cpu,
     points_in_boxes_gpu,
 )
-from .sparse_block import SparseBasicBlock, SparseBottleneck, make_sparse_convmodule
-from .voxel import DynamicScatter, Voxelization, dynamic_scatter, voxelization
+
+# kevin only 4 infer
+from .voxel import DynamicScatter, Voxelization
+# ===
+# from .voxel import DynamicScatter, Voxelization, dynamic_scatter, voxelization
 
 __all__ = [
     "nms",

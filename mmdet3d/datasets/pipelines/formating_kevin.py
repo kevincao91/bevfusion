@@ -50,8 +50,9 @@ class DefaultFormatBundle3D:
         # Format 3D data
         if "points" in results:
             assert isinstance(results["points"], BasePoints)
-            results["points"] = DC(results["points"].tensor)
+            results["points"] = [results["points"].tensor]
 
+        '''
         for key in ["voxels", "coors", "voxel_centers", "num_points"]:
             if key not in results:
                 continue
@@ -60,7 +61,7 @@ class DefaultFormatBundle3D:
             # print('1: ',results[key].size())
             # ==
 
-
+        
         if self.with_gt:
             # Clean GT bboxes in the final
             if "gt_bboxes_3d_mask" in results:
@@ -101,8 +102,9 @@ class DefaultFormatBundle3D:
                         [self.class_names.index(n) for n in results["gt_names_3d"]],
                         dtype=np.int64,
                     )
+        '''
         if "img" in results:
-            results["img"] = DC(torch.stack(results["img"]), stack=True)
+            results["img"] = torch.stack(results["img"])
             # kevin
             # print('2: ',results["img"].size())
             # ==
@@ -120,17 +122,17 @@ class DefaultFormatBundle3D:
             if key not in results:
                 continue
             if isinstance(results[key], list):
-                results[key] = DC([to_tensor(res) for res in results[key]])
+                results[key] = [to_tensor(res) for res in results[key]]
             else:
-                results[key] = DC(to_tensor(results[key]))
+                results[key] = to_tensor(results[key])
             # kevin
             # print('3: ', key, results[key].size())
             # ==
         if "gt_bboxes_3d" in results:
             if isinstance(results["gt_bboxes_3d"], BaseInstance3DBoxes):
-                results["gt_bboxes_3d"] = DC(results["gt_bboxes_3d"], cpu_only=True)
+                results["gt_bboxes_3d"] = results["gt_bboxes_3d"].tensor
             else:
-                results["gt_bboxes_3d"] = DC(to_tensor(results["gt_bboxes_3d"]))
+                results["gt_bboxes_3d"] = to_tensor(results["gt_bboxes_3d"])
         return results
 
 
@@ -158,8 +160,9 @@ class Collect3D:
             "flip",
             "pcd_horizontal_flip",
             "pcd_vertical_flip",
-            "box_mode_3d",
-            "box_type_3d",
+            # kevin
+            # "box_mode_3d",
+            # "box_type_3d",
             "img_norm_cfg",
             "pcd_trans",
             "token",
@@ -194,9 +197,9 @@ class Collect3D:
             if key in results:
                 val = np.array(results[key])
                 if isinstance(results[key], list):
-                    data[key] = DC(to_tensor(val), stack=True)
+                    data[key] = to_tensor(val)
                 else:
-                    data[key] = DC(to_tensor(val), stack=True, pad_dims=1)
+                    data[key] = to_tensor(val)
                 # kevin
                 # print('==: ', key, data[key].size())
                 # ==
@@ -205,5 +208,7 @@ class Collect3D:
             if key in results:
                 metas[key] = results[key]
 
-        data["metas"] = DC(metas, cpu_only=True)
-        return data
+        data["metas"] = metas
+
+        points = data['points']
+        return points, [metas]

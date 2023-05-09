@@ -49,6 +49,11 @@ class LoadMultiViewImageFromFiles:
                 - scale_factor (float): Scale factor.
                 - img_norm_cfg (dict): Normalization configuration of images.
         """
+        # kevin 强制保持一致为6
+        # if len(results["image_paths"]) == 4:
+        #     results["image_paths"] += results["image_paths"][:2]
+        #
+
         filename = results["image_paths"]
         # img is of shape (h, w, c, num_views)
         # modified for waymo
@@ -184,17 +189,37 @@ class LoadPointsFromMultiSweeps:
         sweep_points_list = [points]
         ts = results["timestamp"] / 1e6
         if self.pad_empty_sweeps and len(results["sweeps"]) == 0:
+            # kevin
+            # print('LoadPointsFromMultiSweeps ==> pad_empty_sweeps ', 'len(results["sweeps"])', len(results["sweeps"]), 'self.sweeps_num',self.sweeps_num)
+            # ===
             for i in range(self.sweeps_num):
                 if self.remove_close:
-                    sweep_points_list.append(self._remove_close(points))
+                    # kevin
+                    # sweep_points_list.append(self._remove_close(points))
+                    sweep_points_list.append(self._remove_close(points, i))
+                    # ===
+                    
                 else:
                     sweep_points_list.append(points)
         else:
+            # kevin
+            # print('LoadPointsFromMultiSweeps ==> pad_real_sweeps ', 'len(results["sweeps"])', len(results["sweeps"]), 'self.sweeps_num', self.sweeps_num)
+            # ===
             if len(results["sweeps"]) <= self.sweeps_num:
                 choices = np.arange(len(results["sweeps"]))
             elif self.test_mode:
                 choices = np.arange(self.sweeps_num)
             else:
+
+                # kevin
+                # lidar_path = results["lidar_path"]
+                # lidar_name = os.path.split(lidar_path)[-1][:-8]
+                # file_out = 'data/nuscenes/data4test/{}_sweeps_info.json'.format(lidar_name)
+                # mmcv.dump(results["sweeps"], file_out)
+                # print('{} saved!'.format(file_out))
+                
+                # ====
+
                 # NOTE: seems possible to load frame -11?
                 if not self.load_augmented:
                     choices = np.random.choice(
@@ -209,6 +234,10 @@ class LoadPointsFromMultiSweeps:
                 sweep = results["sweeps"][idx]
                 points_sweep = self._load_points(sweep["data_path"])
                 points_sweep = np.copy(points_sweep).reshape(-1, self.load_dim)
+
+                # kevin
+                # print('LoadPointsFromMultiSweeps ==> load_points_sweep points_sweep.shape', points_sweep.shape)
+                # ==
 
                 # TODO: make it more general
                 if self.reduce_beams and self.reduce_beams < 32:
@@ -228,6 +257,20 @@ class LoadPointsFromMultiSweeps:
         points = points.cat(sweep_points_list)
         points = points[:, self.use_dim]
         results["points"] = points
+
+        # kevin
+        # print('LoadPointsFromMultiSweeps ==> points.cat(sweep_points_list)', points.tensor.size())
+        # ==
+
+        # if len(results["sweeps"]) > self.sweeps_num:
+        #     file_out = 'data/nuscenes/data4test/{}_sweeps_points.bin'.format(lidar_name)
+        #     points_np = results["points"].tensor.numpy()
+        #     print('points_np.shape:',points_np.shape)
+        #     points_np.tofile(file_out)
+        #     print('{} saved!'.format(file_out))
+        #     exit()
+        # ====
+
         return results
 
     def __repr__(self):

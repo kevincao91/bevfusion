@@ -48,15 +48,27 @@ class SECONDFPN(BaseModule):
         for i, out_channel in enumerate(out_channels):
             stride = upsample_strides[i]
             if stride > 1 or (stride == 1 and not use_conv_for_no_stride):
-                upsample_layer = build_upsample_layer(
-                    upsample_cfg,
+                # kevin onnx
+                upsample_layer = nn.ConvTranspose2d(
                     in_channels=in_channels[i],
                     out_channels=out_channel,
                     kernel_size=upsample_strides[i],
                     stride=upsample_strides[i],
+                    bias=False
                 )
+                # upsample_layer = build_upsample_layer(
+                #     upsample_cfg,
+                #     in_channels=in_channels[i],
+                #     out_channels=out_channel,
+                #     kernel_size=upsample_strides[i],
+                #     stride=upsample_strides[i],
+                # )
             else:
                 stride = np.round(1 / stride).astype(np.int64)
+                # kevin onnx
+                # print('SECONDFPN stride:', stride)
+                stride = int(stride)
+                # ===
                 upsample_layer = build_conv_layer(
                     conv_cfg,
                     in_channels=in_channels[i],
@@ -80,7 +92,7 @@ class SECONDFPN(BaseModule):
             ]
 
     @auto_fp16()
-    def forward(self, x):
+    def forward(self, x0, x1):
         """Forward function.
 
         Args:
@@ -89,6 +101,7 @@ class SECONDFPN(BaseModule):
         Returns:
             list[torch.Tensor]: Multi-level feature maps.
         """
+        x = (x0, x1)
         assert len(x) == len(self.in_channels)
         ups = [deblock(x[i]) for i, deblock in enumerate(self.deblocks)]
 
@@ -96,4 +109,8 @@ class SECONDFPN(BaseModule):
             out = torch.cat(ups, dim=1)
         else:
             out = ups[0]
-        return [out]
+        # kevin
+        # print('SECONDFPN-out'.center(20,'='), out.size())
+        # ===
+
+        return out

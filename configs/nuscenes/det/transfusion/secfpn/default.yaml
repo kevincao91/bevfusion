@@ -32,7 +32,9 @@ model:
 
 optimizer:
   type: AdamW
+  # kevin
   lr: 1.0e-4
+  # lr: 6.0e-5
   weight_decay: 0.01
 
 optimizer_config:
@@ -42,6 +44,12 @@ optimizer_config:
 
 lr_config:
   policy: cyclic
+  target_ratio: (6, 1e-4)
+  # kevin
+  # target_ratio: (10, 1e-4)
+  
 
 momentum_config:
   policy: cyclic
+  # kevin
+  # target_ratio: (0.85 / 0.95, 1)

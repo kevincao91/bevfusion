@@ -343,6 +343,10 @@ class ObjectPaste:
             sampled_points = sampled_dict["points"]
             sampled_gt_labels = sampled_dict["gt_labels_3d"]
 
+            # kevin
+            print('ObjectPaste add sampled_gt_labels: ', sampled_gt_labels)
+            # ====
+
             gt_labels_3d = np.concatenate([gt_labels_3d, sampled_gt_labels], axis=0)
             gt_bboxes_3d = gt_bboxes_3d.new_box(
                 np.concatenate([gt_bboxes_3d.tensor.numpy(), sampled_gt_bboxes_3d])
@@ -509,6 +513,10 @@ class PointsRangeFilter:
 
     def __init__(self, point_cloud_range):
         self.pcd_range = np.array(point_cloud_range, dtype=np.float32)
+        # kevin
+        # point_cloud_range = [-20, -10.0, -1.3, 80.0, 10.0, 3.0]
+        # self.pcd_range = np.array(point_cloud_range, dtype=np.float32)
+        # ===
 
     def __call__(self, data):
         """Call function to filter points by the range.
@@ -522,6 +530,9 @@ class PointsRangeFilter:
         points_mask = points.in_range_3d(self.pcd_range)
         clean_points = points[points_mask]
         data["points"] = clean_points
+        # kevin
+        print('PointsRangeFilter  clean_points shape:', clean_points.shape)
+        # ==
         return data
 
 

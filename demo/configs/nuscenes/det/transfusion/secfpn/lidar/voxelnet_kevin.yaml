@@ -1,10 +1,7 @@
 
 # kevin
-# voxel_size: [0.150, 0.150, 0.4]
 voxel_size: [0.075, 0.075, 0.2]
-
 point_cloud_range: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
-# point_cloud_range: [-36.0, -54.0, -5.0, 72.0, 54.0, 3.0]
 # ====
 
 model:
@@ -42,10 +39,8 @@ model:
       train_cfg:
         # kevin
         grid_size: [1440, 1440, 41]
-        # grid_size: [720, 720, 21]
         # ===
       test_cfg:
         # kevin
         grid_size: [1440, 1440, 41]
-        # grid_size: [720, 720, 21]
         # ===

@@ -4,7 +4,6 @@ from torch import nn
 from torch.nn.modules.utils import _pair
 
 
-
 def dynamic_voxelize_kernel(points, coors, voxel_size, coors_range, grid_size,
                             num_points:int, NDim:int=3):
     failed = False
@@ -145,9 +144,6 @@ class Voxelization(nn.Module):
         # the origin shape is as [x-len, y-len, z-len]
         # [w, h, d] -> [d, h, w] removed
         self.pcd_shape = [*input_feat_shape, 1]#[::-1]
-        # kevin
-        print('Voxelization (from voxelize_kevin)'.center(20,'=')) # [tensor(1440), tensor(1440), 1]
-        print(self.__repr__()) # True
 
 
     def forward(self, input):
@@ -173,10 +169,6 @@ class Voxelization(nn.Module):
         coors = points.new_zeros(size=(max_voxels, 3))
         num_points_per_voxel = points.new_zeros(size=(max_voxels,), dtype=torch.int)
 
-        # kevin
-        # print('_Voxelization'.center(20,'='), voxels.shape, coors.shape, num_points_per_voxel.shape) # [tensor(1440), tensor(1440), 1]
-        # torch.Size([120000, 10, 5]) torch.Size([120000, 3]) torch.Size([120000])
-
         voxel_num = hard_voxelize_cpu(
             points,
             voxels,
@@ -187,26 +179,12 @@ class Voxelization(nn.Module):
             max_points,
             max_voxels,
         )
-        # kevin
-        # print('_Voxelization'.center(20,'='), voxel_num) # 41631
-        # with open("CPU.txt", 'w') as f:
-        #     for i in range(coors.size(0)):
-        #         f.write(str(coors[i].detach().cpu().numpy())+'\n')
-        # CPU
-        # for i in range(76,100,1):
-        #     print(i,coors[i])
-        #     print(i,voxels[i])
-
-        # exit()
 
         # select the valid voxels
         voxels_out = voxels[:voxel_num]
         coors_out = coors[:voxel_num]
         num_points_per_voxel_out = num_points_per_voxel[:voxel_num]
         return voxels_out, coors_out, num_points_per_voxel_out
-
-        # ===
-
 
 
     def __repr__(self):

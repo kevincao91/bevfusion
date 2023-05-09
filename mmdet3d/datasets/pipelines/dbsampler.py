@@ -206,6 +206,11 @@ class DataBaseSampler:
                 - points (np.ndarray): sampled points
                 - group_ids (np.ndarray): ids of sampled ground truths
         """
+
+        # kevin
+        print('function in dbsampler sample_all')
+        # ==
+
         sampled_num_dict = {}
         sample_num_per_class = []
         for class_name, max_sample_num in zip(
@@ -299,10 +304,10 @@ class DataBaseSampler:
 
         # kevin  solution 4 raise ValueError('need at least one array to stack')
         # ValueError: need at least one array to stack
-        print('function in sample_class_v2')
+        # print('function in sample_class_v2')
         if num_sampled <= 0:
             return []
-
+        # ===
 
         gt_bboxes_bv = box_np_ops.center_to_corner_box2d(
             gt_bboxes[:, 0:2], gt_bboxes[:, 3:5], gt_bboxes[:, 6]

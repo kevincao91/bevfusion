@@ -16,37 +16,26 @@ model:
         voxel_size: ${voxel_size}
         max_voxels: [120000, 160000]
       backbone:
-        type: SparseEncoder
+        type: DenseEncoder
         in_channels: 5
         # kevin
         sparse_shape: [1440, 1440, 41]
-        # sparse_shape: [720, 720, 21]
         # ===
         output_channels: 128
         order:
           - conv
           - norm
           - act
-        # encoder_channels:
-        #   - [16, 16, 32]
-        #   - [32, 32, 64]
-        #   - [64, 64, 128]
-        #   - [128, 128]
-        # encoder_paddings:
-        #   - [0, 0, 1]
-        #   - [0, 0, 1]
-        #   - [0, 0, [1, 1, 0]]
-        #   - [0, 0]
         encoder_channels:
           - [16, 32]
           - [32, 64]
           - [64, 128]
-          - [128, 128]
+          - [128]
         encoder_paddings:
-          - [0, 1]
-          - [0, 1]
-          - [0, [1, 1, 0]]
-          - [0, 0]
+          - [1, 1]
+          - [1, 1]
+          - [1, [1, 1, 0]]
+          - [1]
         block_type: basicblock
   heads:
     object:

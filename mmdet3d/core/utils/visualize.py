@@ -22,6 +22,8 @@ OBJECT_PALETTE = {
     "motorcycle": (255, 61, 99),
     "bicycle": (220, 20, 60),
     "pedestrian": (0, 0, 230),
+    # kevin
+    "rider": (220, 20, 60),
     "traffic_cone": (47, 79, 79),
 }
 
@@ -80,6 +82,11 @@ def visualize_camera(
 
         coords = coords[..., :2].reshape(-1, 8, 2)
         for index in range(coords.shape[0]):
+            # kevin
+            # print(index)
+            # print(labels.shape)
+            # print(labels)
+            # =======
             name = classes[labels[index]]
             for start, end in [
                 (0, 1),
@@ -140,15 +147,37 @@ def visualize_lidar(
         )
 
     if bboxes is not None and len(bboxes) > 0:
-        coords = bboxes.corners[:, [0, 3, 7, 4, 0], :2]
+        coords = bboxes.corners[:, [0, 3, 7, 4, 0], :2].numpy()
+        # kevin  画方向线
+        ctr_points = bboxes.center.numpy()
+        ctr_x = ctr_points[:, 0]
+        ctr_y = ctr_points[:, 1]
+        frt_coords = bboxes.corners[:, [0, 4], :2].numpy()
+        p0_x = frt_coords[:, 0, 0]
+        p0_y = frt_coords[:, 0, 1]
+        p4_x = frt_coords[:, 1, 0]
+        p4_y = frt_coords[:, 1, 1]
+        frt_ctr_x = (p0_x + p4_x)/2
+        frt_ctr_y = (p0_y + p4_y)/2
+        # ============
+        
         for index in range(coords.shape[0]):
             name = classes[labels[index]]
+            class_color = np.array(color or OBJECT_PALETTE[name]) / 255
             plt.plot(
                 coords[index, :, 0],
                 coords[index, :, 1],
                 linewidth=thickness,
-                color=np.array(color or OBJECT_PALETTE[name]) / 255,
+                color=class_color,
             )
+            # kevin  画方向线
+            plt.plot(
+                (ctr_x[index], frt_ctr_x[index]),
+                (ctr_y[index], frt_ctr_y[index]),
+                linewidth=thickness,
+                color=class_color,
+            )
+            # ============
 
     mmcv.mkdir_or_exist(os.path.dirname(fpath))
     fig.savefig(

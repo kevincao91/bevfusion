@@ -38,6 +38,14 @@ class CBGSDataset:
         Returns:
             list[dict]: List of annotations after class sampling.
         """
+
+        # kevin 为了测试时候固定顺序
+        # sample_indices = [idx for idx in range(len(self.dataset))]
+        # # sample_indices.reverse()
+        # print(len(sample_indices), sample_indices)
+        # return sample_indices
+        # ===
+
         class_sample_idxs = {cat_id: [] for cat_id in self.cat2id.values()}
         for idx in range(len(self.dataset)):
             sample_cat_ids = self.dataset.get_cat_ids(idx)
@@ -56,7 +64,7 @@ class CBGSDataset:
         for v in class_distribution.values():
             print(v)
             if v == 0.0:
-                tt = 1e-3
+                tt = 1e-6
             else:
                 tt = frac / v
             ratios.append(tt)
@@ -68,7 +76,7 @@ class CBGSDataset:
             ).tolist()
 
         # kevin
-        print('len(sample_indices)', len(sample_indices), sample_indices)
+        print('len(sample_indices)', len(sample_indices))
 
         return sample_indices
 
